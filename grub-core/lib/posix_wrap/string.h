@@ -120,6 +120,11 @@ strtol (const char *str, const char **endptr, int base)
   return grub_strtol (str, endptr, base);
 }
 
+static inline char *
+strdup (const char *s)
+{
+  return grub_strdup (s);
+}
 
 static inline void *
 memchr (const void *s, int c, grub_size_t n)
