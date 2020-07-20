@@ -2954,6 +2954,43 @@ module = {
 };
 
 module = {
+  name = ntfs_3g;
+  common = lib/ntfs-3g/libntfs-3g/attrib.c;
+  common = lib/ntfs-3g/libntfs-3g/attrlist.c;
+  common = lib/ntfs-3g/libntfs-3g/bitmap.c;
+  common = lib/ntfs-3g/libntfs-3g/bootsect.c;
+  common = lib/ntfs-3g/libntfs-3g/cache.c;
+  common = lib/ntfs-3g/libntfs-3g/collate.c;
+  common = lib/ntfs-3g/libntfs-3g/compat.c;
+  common = lib/ntfs-3g/libntfs-3g/compress.c;
+  common = lib/ntfs-3g/libntfs-3g/debug.c;
+  common = lib/ntfs-3g/libntfs-3g/device.c;
+  common = lib/ntfs-3g/libntfs-3g/dir.c;
+  common = lib/ntfs-3g/libntfs-3g/ea.c;
+  common = lib/ntfs-3g/libntfs-3g/efs.c;
+  common = lib/ntfs-3g/libntfs-3g/index.c;
+  common = lib/ntfs-3g/libntfs-3g/inode.c;
+
+  common = lib/ntfs-3g/libntfs-3g/lcnalloc.c;
+  common = lib/ntfs-3g/libntfs-3g/logfile.c;
+  common = lib/ntfs-3g/libntfs-3g/logging.c;
+  common = lib/ntfs-3g/libntfs-3g/mft.c;
+  common = lib/ntfs-3g/libntfs-3g/misc.c;
+  common = lib/ntfs-3g/libntfs-3g/mst.c;
+  common = lib/ntfs-3g/libntfs-3g/object_id.c;
+  common = lib/ntfs-3g/libntfs-3g/realpath.c;
+  common = lib/ntfs-3g/libntfs-3g/reparse.c;
+  common = lib/ntfs-3g/libntfs-3g/runlist.c;
+
+  common = lib/ntfs-3g/libntfs-3g/unistr.c;
+  common = lib/ntfs-3g/libntfs-3g/volume.c;
+  common = lib/ntfs-3g/libntfs-3g/xattrs.c;
+
+  cflags = '$(CFLAGS_POSIX) -Wno-implicit-function-declaration';
+  cppflags = '$(CPPFLAGS_POSIX) -DHAVE_CONFIG_H -I$(srcdir)/lib/ntfs-3g/include';
+};
+
+module = {
   name = nes;
   common = lib/nes/nes.c;
   cflags = '$(CFLAGS_POSIX) -Wno-unused-parameter';
