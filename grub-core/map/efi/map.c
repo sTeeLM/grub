@@ -240,6 +240,98 @@ mount_eltorito (struct grub_efivdisk_data *src, const char *name)
   return GRUB_ERR_NONE;
 }
 
+struct grub_efi_mapinfo
+{
+  char magic[8]; /* "GNU GRUB" */
+  grub_uint8_t type;
+  grub_uint64_t addr;
+  grub_uint64_t size;
+  char path[0];
+} GRUB_PACKED;
+
+#define GRUB_EFI_MAP_GUID \
+  { 0x19260817, 0xAAAA, 0xBBBB, { 0x47, 0x4E, 0x55, 0x20, 0x47, 0x52, 0x55, 0x42 }}
+
+static void
+set_map_info (grub_efivdisk_t *vdisk)
+{
+  grub_err_t err;
+  struct grub_efi_mapinfo info;
+  grub_efi_guid_t guid = GRUB_EFI_MAP_GUID;
+  grub_memcpy (info.magic, "GNU GRUB", 8);
+  if (grub_ismemfile (vdisk->file->name))
+    info.addr = (grub_addr_t) vdisk->file->data;
+  else
+    info.addr = 0;
+  info.size = vdisk->size;
+  err = grub_efi_set_var_attr ("GrubDisk", &guid, &info, sizeof (info),
+                               GRUB_EFI_VARIABLE_BOOTSERVICE_ACCESS |
+                               GRUB_EFI_VARIABLE_RUNTIME_ACCESS);
+  if (err)
+    grub_printf ("can't set EFI variable.\n");
+  //else
+  //  grub_printf ("map addr 0x%lx size %lu.\n", info.addr, info.size);
+}
+
+static grub_efi_status_t (EFIAPI *orig_locate_handle)
+                      (grub_efi_locate_search_type_t search_type,
+                       grub_efi_guid_t *protocol,
+                       void *search_key,
+                       grub_efi_uintn_t *buffer_size,
+                       grub_efi_handle_t *buffer) = NULL;
+
+static int
+compare_guid (grub_efi_guid_t *a, grub_efi_guid_t *b)
+{
+  int i;
+  if (a->data1 != b->data1 || a->data2 != b->data2 || a->data3 != b->data3)
+    return 0;
+  for (i = 0; i < 8; i++)
+  {
+    if (a->data4[i] != b->data4[i])
+      return 0;
+  }
+  return 1;
+}
+
+static grub_efi_handle_t saved_handle;
+
+static grub_efi_status_t EFIAPI
+locate_handle_wrapper (grub_efi_locate_search_type_t search_type,
+                       grub_efi_guid_t *protocol,
+                       void *search_key,
+                       grub_efi_uintn_t *buffer_size,
+                       grub_efi_handle_t *buffer)
+{
+  grub_efi_uintn_t i;
+  grub_efi_handle_t handle = NULL;
+  grub_efi_status_t status = GRUB_EFI_SUCCESS;
+  grub_efi_guid_t guid = GRUB_EFI_BLOCK_IO_GUID;
+
+  status = efi_call_5 (orig_locate_handle, search_type,
+                       protocol, search_key, buffer_size, buffer);
+
+  if (status != GRUB_EFI_SUCCESS || !protocol)
+    return status;
+
+  if (!compare_guid (&guid, protocol))
+    return status;
+
+  for (i = 0; i < (*buffer_size) / sizeof(grub_efi_handle_t); i++)
+  {
+    if (buffer[i] == saved_handle)
+    {
+      handle = buffer[0];
+      buffer[0] = buffer[i];
+      buffer[i] = handle;
+      break;
+    }
+  }
+
+  return status;
+}
+
+
 static const struct grub_arg_option options_map[] =
 {
   {"mem", 'm', 0, N_("Copy to RAM."), 0, 0},
@@ -252,6 +344,7 @@ static const struct grub_arg_option options_map[] =
     N_("Mount UEFI Eltorito image at the same time."), N_("disk"), ARG_TYPE_STRING},
   {"nb", 'n', 0, N_("Don't boot virtual disk."), 0, 0},
   {"unmap", 'x', 0, N_("Unmap devices."), N_("disk"), ARG_TYPE_STRING},
+  {"first", 'f', 0, N_("Set as the first drive."), 0, 0},
   {0, 0, 0, 0, 0, 0}
 };
 
@@ -312,6 +405,19 @@ grub_cmd_map (grub_extcmd_context_t ctxt, int argc, char **args)
 
   if (disk->type == CD && state[MAP_ELT].set)
     mount_eltorito (disk, state[MAP_ELT].arg);
+
+  set_map_info (&disk->vdisk);
+
+  if (state[MAP_FIRST].set)
+  {
+    grub_efi_boot_services_t *b = grub_efi_system_table->boot_services;
+    if (!orig_locate_handle)
+    {
+      orig_locate_handle = (void *) b->locate_handle;
+      b->locate_handle = (void *) locate_handle_wrapper;
+    }
+    saved_handle = disk->vdisk.handle;
+  }
 
   if (state[MAP_NB].set)
     return grub_errno;
