@@ -54,6 +54,7 @@ struct grub_gui_label
   grub_video_rgba_color_t color;
   int value;
   enum align_mode align;
+  int multi_line;
 };
 
 typedef struct grub_gui_label *grub_gui_label_t;
@@ -82,40 +83,41 @@ label_is_instance (void *vself __attribute__((unused)), const char *type)
   return grub_strcmp (type, "component") == 0;
 }
 
+static unsigned int 
+label_font_print_sentence(
+          const char * text,
+          grub_font_t font, 
+          grub_video_rgba_color_t color,
+          const grub_video_rect_t * bounds,
+          enum align_mode align,
+          unsigned int * height,
+          int multi_line,
+          int dry_run);
+
 static void
 label_paint (void *vself, const grub_video_rect_t *region)
 {
   grub_gui_label_t self = vself;
 
-  if (! self->visible)
+  if (!self->visible)
     return;
 
   if (!grub_video_have_common_points (region, &self->bounds))
     return;
 
-  /* Calculate the starting x coordinate.  */
-  int left_x;
-  if (self->align == align_left)
-    left_x = 0;
-  else if (self->align == align_center)
-    left_x = (self->bounds.width
-          - grub_font_get_string_width (self->font, self->text)) / 2;
-  else if (self->align == align_right)
-    left_x = (self->bounds.width
-              - grub_font_get_string_width (self->font, self->text));
-  else
-    return;   /* Invalid alignment.  */
-
-  if (left_x < 0 || left_x > (int) self->bounds.width)
-    left_x = 0;
-
   grub_video_rect_t vpsave;
   grub_gui_set_viewport (&self->bounds, &vpsave);
-  grub_font_draw_string (self->text,
-                         self->font,
-                         grub_video_map_rgba_color (self->color),
-                         left_x,
-                         grub_font_get_ascent (self->font));
+
+  label_font_print_sentence(
+    self->text,
+    self->font,
+    self->color,
+    &self->bounds,
+    self->align, 
+    NULL,
+    self->multi_line,
+    0);
+
   grub_gui_restore_viewport (&vpsave);
 }
 
@@ -147,13 +149,149 @@ label_get_bounds (void *vself, grub_video_rect_t *bounds)
   *bounds = self->bounds;
 }
 
+/* Calculate the starting x coordinate.  */
+static int
+label_get_left_x(
+    int length, 
+    enum align_mode align,
+    const grub_video_rect_t *bounds)
+{
+  int left_x;
+  if (align == align_left)
+    left_x = 0;
+  else if (align == align_center)
+    left_x = (bounds->width - length) / 2;
+  else if (align == align_right)
+    left_x = (bounds->width - length);
+  else
+    left_x = -1;   /* Invalid alignment.  */
+   if (left_x < 0 || left_x > (int) bounds->width)
+    left_x = 0;
+  return left_x;
+}
+
+/*
+  return max width of sentence (with font),
+  and total height
+*/
+static unsigned int 
+label_font_print_sentence(
+          const char * text,
+          grub_font_t font,
+          grub_video_rgba_color_t color,
+          const grub_video_rect_t * bounds,
+          enum align_mode align,
+          unsigned int * height,
+          int multi_line,
+          int dry_run)
+{
+  char * ptr_head, *ptr;
+  char * str = NULL;
+  int sentence_len, sentence_cnt, width;
+  int left_x = 0, y = 0;
+
+  if(!text)
+    return 0;
+
+  if(height)
+    *height = 0;
+
+  width = 0;
+  sentence_cnt = 0;
+
+  if(!multi_line) 
+    {
+      width = grub_font_get_string_width (
+        font, text);
+      y = grub_font_get_ascent (font);
+      if(!dry_run)
+        {
+          left_x = label_get_left_x(width,
+            align, bounds);
+          grub_font_draw_string (text, font,
+            grub_video_map_rgba_color (color),
+            left_x, y);
+	}
+      sentence_cnt = 1;
+    }
+   else
+    {
+      if(!(str = grub_strdup(text)))
+        return 0;
+
+      ptr_head = str;
+      for(ptr = str; ptr < str + grub_strlen(text); ptr ++)
+        {
+          if(*ptr == '\n')
+            {
+              *ptr = '\0';
+              if(*ptr_head != '\0')
+                {
+                  // a non empty sentense
+                  sentence_len = grub_font_get_string_width(font, ptr_head);
+                  y = sentence_cnt * (grub_font_get_ascent (font)
+                          + grub_font_get_descent (font)) 
+                          + grub_font_get_ascent (font);
+                  if(!dry_run)
+                    {
+                      left_x = label_get_left_x(sentence_len, align, bounds);
+                      grub_font_draw_string (ptr_head,
+                        font,
+                        grub_video_map_rgba_color (color),
+                        left_x, y);
+                    }
+                  width = width > sentence_len ? width : sentence_len;
+                }
+              else
+                {
+                  // an empty sentense
+
+                }
+              ptr_head = ptr + 1;
+              sentence_cnt ++;
+            } 
+        }
+      if(ptr_head < ptr) 
+        {
+          sentence_len = grub_font_get_string_width(font, ptr_head);
+          y = sentence_cnt * (grub_font_get_ascent (font)
+                + grub_font_get_descent (font)) 
+                + grub_font_get_ascent (font);
+          if(!dry_run)
+          {
+            left_x = label_get_left_x(sentence_len, align, bounds);
+            grub_font_draw_string (ptr_head,
+              font,
+              grub_video_map_rgba_color (color),
+              left_x, y);
+          }
+         width = width > sentence_len ? width : sentence_len;
+         sentence_cnt ++;
+        }
+      grub_free(str);
+    }
+
+  if(height)
+    *height = y + grub_font_get_descent (font);
+
+  return width;
+}
+
+
 static void
 label_get_minimal_size (void *vself, unsigned *width, unsigned *height)
 {
   grub_gui_label_t self = vself;
-  *width = grub_font_get_string_width (self->font, self->text);
-  *height = (grub_font_get_ascent (self->font)
-             + grub_font_get_descent (self->font));
+
+  *width = label_font_print_sentence(
+          self->text,
+          self->font, 
+          self->color,
+          &self->bounds,
+          self->align,
+          height,
+          self->multi_line,
+          1);
 }
 
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
@@ -260,6 +398,10 @@ label_set_property (void *vself, const char *name, const char *value)
      == 0)
    grub_gfxmenu_help_message_register((grub_gui_component_t) self, label_set_state);
     }
+  else if (grub_strcmp (name, "multi_line") == 0)
+    {
+      self->multi_line = grub_strcmp (value, "false") != 0;
+	}
   return GRUB_ERR_NONE;
 }
 
@@ -295,5 +437,6 @@ grub_gui_label_new (void)
   label->color.blue = 0;
   label->color.alpha = 255;
   label->align = align_left;
+  label->multi_line = 0;
   return (grub_gui_component_t) label;
 }
