@@ -89,7 +89,7 @@ jobs:
       uses: marvinpinto/action-automatic-releases@latest
       with:
         repo_token: "${{ secrets.GITHUB_TOKEN }}"
-        automatic_release_tag: "current"
+        automatic_release_tag: "grub2_latest"
         prerelease: false
         title: "Test Build"
         files: grub2-latest.tar.gz
