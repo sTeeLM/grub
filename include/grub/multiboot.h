@@ -73,8 +73,8 @@ grub_err_t grub_multiboot_set_video_mode (void);
 #define GRUB_MACHINE_HAS_ACPI 0
 #endif
 
-#define GRUB_MULTIBOOT_CONSOLE_EGA_TEXT 1
-#define GRUB_MULTIBOOT_CONSOLE_FRAMEBUFFER 2 
+#define GRUB_MULTIBOOT_CONSOLE_EGA_TEXT    1
+#define GRUB_MULTIBOOT_CONSOLE_FRAMEBUFFER 2
 
 grub_err_t
 grub_multiboot_set_console (int console_type, int accepted_consoles,
@@ -107,6 +107,6 @@ grub_multiboot_load_elf (mbi_load_data_t *mld);
 extern grub_size_t grub_multiboot_pure_size;
 extern grub_size_t grub_multiboot_alloc_mbi;
 extern grub_uint32_t grub_multiboot_payload_eip;
-
+extern int grub_multiboot_no_exit;
 
 #endif /* ! GRUB_MULTIBOOT_HEADER */

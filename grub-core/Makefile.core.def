@@ -112,7 +112,7 @@ kernel = {
   i386_qemu_startup = kern/i386/qemu/startup.S;
   i386_ieee1275_startup = kern/i386/ieee1275/startup.S;
   i386_coreboot_startup = kern/i386/coreboot/startup.S;
-  i386_multiboot_startup = kern/i386/coreboot/startup.S;
+  i386_multiboot_startup = kern/i386/multiboot/startup.S;
   mips_startup = kern/mips/startup.S;
   sparc64_ieee1275_startup = kern/sparc64/ieee1275/crt0.S;
   powerpc_ieee1275_startup = kern/powerpc/ieee1275/startup.S;
@@ -191,7 +191,7 @@ kernel = {
   i386_xen_pvh = kern/i386/dl.c;
 
   i386_coreboot = kern/i386/coreboot/init.c;
-  i386_multiboot = kern/i386/coreboot/init.c;
+  i386_multiboot = kern/i386/multiboot/init.c;
   i386_qemu = kern/i386/qemu/init.c;
   i386_coreboot_multiboot_qemu = term/i386/pc/vga_text.c;
   coreboot = video/coreboot/cbfb.c;
@@ -204,8 +204,8 @@ kernel = {
   efi = term/efi/console.c;
   efi = kern/acpi.c;
   efi = kern/efi/acpi.c;
-  i386_coreboot = kern/i386/coreboot/acpi.c;
-  i386_multiboot = kern/i386/coreboot/acpi.c;
+  i386_coreboot = kern/i386/pc/acpi.c;
+  i386_multiboot = kern/i386/multiboot/acpi.c;
   i386_coreboot = kern/acpi.c;
   i386_multiboot = kern/acpi.c;
 
@@ -275,7 +275,8 @@ kernel = {
   coreboot = kern/coreboot/cbtable.c;
   arm_coreboot = kern/arm/coreboot/cbtable.c;
 
-  i386_multiboot = kern/i386/multiboot_mmap.c;
+  i386_multiboot = kern/i386/multiboot/mmap.c;
+  i386_multiboot = term/i386/pc/console.c;
 
   mips = kern/mips/cache.S;
   mips = kern/mips/dl.c;
@@ -728,9 +729,9 @@ module = {
   common = kern/i386/coreboot/cbtable.c;
   common = kern/coreboot/cbtable.c;
   enable = i386_pc;
+  enable = i386_multiboot;
   enable = i386_efi;
   enable = i386_qemu;
-  enable = i386_multiboot;
   enable = i386_ieee1275;
   enable = x86_64_efi;
 };
@@ -858,6 +859,7 @@ module = {
   name = boot;
   common = commands/boot.c;
   i386_pc = lib/i386/pc/biosnum.c;
+  i386_multiboot = lib/i386/pc/biosnum.c;
   enable = x86;
   enable = emu;
   enable = sparc64_ieee1275;
@@ -1145,7 +1147,7 @@ module = {
 
 module = {
   name = play;
-  x86 = commands/i386/pc/play.c;
+  x86 = commands/i386/play.c;
   enable = x86;
 };
 
@@ -1230,8 +1232,8 @@ module = {
   common = commands/smbios.c;
   efi = commands/efi/smbios.c;
   i386_pc = commands/i386/pc/smbios.c;
-  i386_coreboot = commands/i386/coreboot/smbios.c;
-  i386_multiboot = commands/i386/coreboot/smbios.c;
+  i386_coreboot = commands/i386/pc/smbios.c;
+  i386_multiboot = commands/i386/multiboot/smbios.c;
 
   enable = efi;
   enable = i386_pc;
@@ -1403,8 +1405,9 @@ module = {
 
 module = {
   name = biosdisk;
-  i386_pc = disk/i386/pc/biosdisk.c;
+  common = disk/i386/pc/biosdisk.c;
   enable = i386_pc;
+  enable = i386_multiboot;
 };
 
 module = {
@@ -1862,8 +1865,9 @@ module = {
 
 module = {
   name = ntldr;
-  i386_pc = loader/i386/pc/ntldr.c;
+  common = loader/i386/pc/ntldr.c;
   enable = i386_pc;
+  enable = i386_multiboot;
 };
 
 
@@ -1986,9 +1990,11 @@ module = {
   name = chain;
   efi = loader/efi/chainloader.c;
   i386_pc = loader/i386/pc/chainloader.c;
+  i386_multiboot = loader/i386/pc/chainloader.c;
   i386_coreboot = loader/i386/coreboot/chainloader.c;
   enable = i386_pc;
   enable = i386_coreboot;
+  enable = i386_multiboot;
   enable = efi;
 };
 
@@ -2157,8 +2163,9 @@ module = {
 
 module = {
   name = sendkey;
-  i386_pc = commands/i386/pc/sendkey.c;
+  common = commands/i386/pc/sendkey.c;
   enable = i386_pc;
+  enable = i386_multiboot;
 };
 
 module = {
@@ -2360,6 +2367,7 @@ module = {
   name = vbe;
   common = video/i386/pc/vbe.c;
   enable = i386_pc;
+  enable = i386_multiboot;
 };
 
 module = {
@@ -2536,6 +2544,7 @@ module = {
   name = lsapm;
   common = commands/i386/pc/lsapm.c;
   enable = i386_pc;
+  enable = i386_multiboot;
 };
 
 module = {
@@ -2768,20 +2777,18 @@ module = {
   efi = map/efi/blockio.c;
   efi = map/efi/vdisk.c;
   efi = map/efi/vpart.c;
+  efi = map/efi/handle.c;
 
   i386_pc = map/pc/map.c;
+  i386_multiboot = map/pc/map.c;
   i386_pc = map/pc/drivemap_int13h.S;
+  i386_multiboot = map/pc/drivemap_int13h.S;
 
   cflags = '-Wno-strict-aliasing -fshort-wchar';
   cppflags = '-I$(srcdir)/map/include';
   enable = efi;
   enable = i386_pc;
-};
-
-module = {
-  name = drivemap;
-  i386_pc = map/pc/drivemap.c;
-  enable = i386_pc;
+  enable = i386_multiboot;
 };
 
 module = {
@@ -2790,7 +2797,9 @@ module = {
   efi = map/wimboot/efi/boot.c;
   efi = map/wimboot/efi/install.c;
   i386_pc = map/wimboot/pc/boot.c;
+  i386_multiboot = map/wimboot/pc/boot.c;
   i386_pc = map/wimboot/pc/install.c;
+  i386_multiboot = map/wimboot/pc/install.c;
   common = map/lib/reg.c;
   common = map/lib/bcd.c;
   common = map/lib/xz.c;
@@ -2809,6 +2818,7 @@ module = {
   cppflags = '-I$(srcdir)/map/include';
   enable = efi;
   enable = i386_pc;
+  enable = i386_multiboot;
 };
 
 module = {
@@ -2820,6 +2830,7 @@ module = {
   enable = i386_efi;
   enable = x86_64_efi;
   enable = i386_pc;
+  enable = i386_multiboot;
 };
 
 module = {
@@ -2905,6 +2916,7 @@ module = {
   cppflags = '-I$(srcdir)/script/ini';
   enable = efi;
   enable = i386_pc;
+  enable = i386_multiboot;
 };
 
 module = {

@@ -28,6 +28,7 @@
 #include <grub/err.h>
 #include <grub/term.h>
 #include <grub/i18n.h>
+#include <grub/env.h>
 
 GRUB_MOD_LICENSE ("GPLv3+");
 
@@ -38,7 +39,10 @@ static int grub_biosdisk_get_num_floppies (void)
 {
   struct grub_bios_int_registers regs;
   int drive;
-
+  const char *detect_floppies = NULL;
+  detect_floppies = grub_env_get ("grub_detect_floppies");
+  if (! detect_floppies || detect_floppies[0] == '0')
+    return 0;
   /* reset the disk system first */
   regs.eax = 0;
   regs.edx = 0;
@@ -656,6 +660,10 @@ GRUB_MOD_INIT(biosdisk)
   struct grub_biosdisk_cdrp *cdrp
     = (struct grub_biosdisk_cdrp *) GRUB_MEMORY_MACHINE_SCRATCH_ADDR;
   grub_uint8_t boot_drive;
+#ifdef GRUB_MACHINE_MULTIBOOT
+  if (!grub_mb_check_bios_int (0x13))
+    return;
+#endif
 
   if (grub_disk_firmware_is_tainted)
     {
@@ -684,5 +692,8 @@ GRUB_MOD_INIT(biosdisk)
 
 GRUB_MOD_FINI(biosdisk)
 {
-  grub_disk_biosdisk_fini ();
+#ifdef GRUB_MACHINE_MULTIBOOT
+  if (grub_mb_check_bios_int (0x13))
+#endif
+    grub_disk_biosdisk_fini ();
 }

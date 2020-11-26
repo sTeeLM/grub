@@ -695,13 +695,6 @@ floppy instead of exposing the USB drive as a hard disk (they call it
 This install doesn't conflict with standard install as long as they are in
 separate directories.
 
-Note that @command{grub-install} is actually just a shell script and the
-real task is done by other tools such as @command{grub-mkimage}. Therefore,
-you may run those commands directly to install GRUB, without using
-@command{grub-install}. Don't do that, however, unless you are very familiar
-with the internals of GRUB. Installing a boot loader on a running OS may be
-extremely dangerous.
-
 On EFI systems for fixed disk install you have to mount EFI System Partition.
 If you mount it at @file{/boot/efi} then you don't need any special arguments:
 
@@ -5825,15 +5818,9 @@ verified with a public key currently trusted by GRUB
 validation fails, then file @file{foo} cannot be opened.  This failure
 may halt or otherwise impact the boot process.
 
-@comment Unfortunately --pubkey is not yet supported by grub-install,
-@comment but we should not bring up internal detail grub-mkimage here
-@comment in the user guide (as opposed to developer's manual).
-
-@comment An initial trusted public key can be embedded within the GRUB
-@comment @file{core.img} using the @code{--pubkey} option to
-@comment @command{grub-mkimage} (@pxref{Invoking grub-install}).  Presently it
-@comment is necessary to write a custom wrapper around @command{grub-mkimage}
-@comment using the @code{--grub-mkimage} flag to @command{grub-install}.
+An initial trusted public key can be embedded within the GRUB @file{core.img}
+using the @code{--pubkey} option to @command{grub-install}
+(@pxref{Invoking grub-install}).
 
 GRUB uses GPG-style detached signatures (meaning that a file
 @file{foo.sig} will be produced when file @file{foo} is signed), and

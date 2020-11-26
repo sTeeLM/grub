@@ -41,10 +41,6 @@ extern grub_uint8_t _start[];
 extern grub_uint8_t _end[];
 extern grub_uint8_t _edata[];
 
-#ifdef GRUB_MACHINE_MULTIBOOT
-struct multiboot_info *grub_multiboot_info = 0;
-#endif
-
 void  __attribute__ ((noreturn))
 grub_exit (int rc __attribute__((unused)))
 {
@@ -93,8 +89,6 @@ heap_init (grub_uint64_t addr, grub_uint64_t size, grub_memory_type_t type,
   return 0;
 }
 
-#ifndef GRUB_MACHINE_MULTIBOOT
-
 void
 grub_machine_init (void)
 {
@@ -115,30 +109,6 @@ grub_machine_init (void)
 
   grub_tsc_init ();
 }
-
-#else
-
-void
-grub_machine_init (void)
-{
-  modend = grub_modules_get_end ();
-
-  grub_video_multiboot_fb_early_init ();
-
-  grub_vga_text_init ();
-
-  grub_machine_mmap_init ();
-  grub_machine_mmap_iterate (heap_init, NULL);
-
-  grub_video_multiboot_fb_late_init ();
-
-  grub_font_init ();
-  grub_gfxterm_init ();
-
-  grub_tsc_init ();
-}
-
-#endif
 
 void
 grub_machine_get_bootlocation (char **device __attribute__ ((unused)),

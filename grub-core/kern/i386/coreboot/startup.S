@@ -36,13 +36,6 @@
     .globl   start, _start
 start:
 _start:
-#ifdef GRUB_MACHINE_MULTIBOOT
-    cmpl    $MULTIBOOT_BOOTLOADER_MAGIC, %eax
-    jne     0f
-    movl    %ebx, EXT_C(grub_multiboot_info)
-0:
-#endif
-
     /* initialize the stack */
     movl  $GRUB_MEMORY_MACHINE_PROT_STACK, %esp
 
@@ -52,8 +45,7 @@ _start:
 /*
  *  Support for booting GRUB from a Multiboot boot loader (e.g. GRUB itself).
  */
-#define MULTIBOOT_FLAGS (MULTIBOOT_MEMORY_INFO | \
-                         MULTIBOOT_VIDEO_MODE)
+#define MULTIBOOT_FLAGS MULTIBOOT_MEMORY_INFO
     .p2align  2 /* force 4-byte alignment */
 multiboot_header:
     /* magic */
@@ -62,14 +54,3 @@ multiboot_header:
     .long   MULTIBOOT_FLAGS
     /* checksum */
     .long   -(MULTIBOOT_HEADER_MAGIC+MULTIBOOT_FLAGS) /* checksum */
-    .long   0
-    .long   0
-    .long   0
-    .long   0
-    .long   0
-
-    .long   0 /* mode_type */
-    .long   1024 /* cols */
-    .long   768 /* rows */
-    .long   0 /* color depth */
-
